@@ -14,14 +14,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fastify_1 = __importDefault(require("fastify"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const client_1 = require("@prisma/client");
+const cors_1 = __importDefault(require("@fastify/cors"));
 const server = (0, fastify_1.default)();
 dotenv_1.default.config();
+const prisma = new client_1.PrismaClient();
 server.register(require("fastify-auth0-verify"), {
     domain: process.env.AUTH0_DOMAIN,
     secret: process.env.AUTH0_CLIENT_SECRET,
 });
+server.register(cors_1.default, {
+    origin: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: false,
+});
 server.addHook("onRequest", (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("llega");
     try {
         yield request.jwtVerify();
     }
@@ -29,9 +36,12 @@ server.addHook("onRequest", (request, reply) => __awaiter(void 0, void 0, void 0
         reply.send(err);
     }
 }));
-server.get("/ping", (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
-    //  console.log("llega");
-    return "pong\n";
+server.get("/get-issues", (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
+    const issues = yield prisma.issue.findMany();
+    reply
+        .code(200)
+        .header("Content-Type", "application/json; charset=utf-8")
+        .send(issues);
 }));
 server.listen({ port: 8080 }, (err, address) => {
     if (err) {

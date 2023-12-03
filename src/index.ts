@@ -1,15 +1,17 @@
-import fastify from "fastify";
-import dotenv from "dotenv";
-import {FastifyRequest} from "fastify";
-import {FastifyJWT} from "@fastify/jwt";
-import {PrismaClient} from "@prisma/client";
 import cors from "@fastify/cors";
+import {PrismaClient} from "@prisma/client";
+import dotenv from "dotenv";
+import fastify, {FastifyRequest} from "fastify";
+
+import issuesRoutes from "./routes/issues";
+import {FastifyJWT} from "@fastify/jwt";
+import fastifyAuth0Verify from "fastify-auth0-verify";
 
 const server = fastify();
 dotenv.config();
 const prisma = new PrismaClient();
 
-server.register(require("fastify-auth0-verify"), {
+server.register(fastifyAuth0Verify, {
   domain: process.env.AUTH0_DOMAIN,
   secret: process.env.AUTH0_CLIENT_SECRET,
 });
@@ -31,14 +33,6 @@ server.addHook(
   }
 );
 
-server.get("/get-issues", async (request: FastifyRequest, reply) => {
-  const issues = await prisma.issue.findMany();
-
-  reply
-    .code(200)
-    .header("Content-Type", "application/json; charset=utf-8")
-    .send(issues);
-});
 server.listen({port: 8080}, (err, address) => {
   if (err) {
     console.error(err);
@@ -46,3 +40,5 @@ server.listen({port: 8080}, (err, address) => {
   }
   console.log(`Server listening at ${address}`);
 });
+
+server.register(issuesRoutes, {prefix: "/issues"});
